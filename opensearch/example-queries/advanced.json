@@ -1,0 +1,56 @@
+{
+  "description": "Advanced mode: LLM intent plan with custom boosts and review evidence weighting",
+  "mode": "advanced",
+  "query_plan": {
+    "mode": "advanced",
+    "query": "quiet coffee shop open now affordable good reviews",
+    "filters": {
+      "geo": { "lat": 40.7128, "lon": -74.006, "radiusKm": 5 },
+      "openNow": true,
+      "priceTier": "cheap"
+    },
+    "mustHaveFromReviews": ["quiet", "good reviews"],
+    "niceToHaveFromReviews": ["friendly staff"],
+    "boosts": { "distance": "medium", "rating": "high", "reviewEvidence": "high" },
+    "sort": [{ "field": "rating", "order": "desc" }, { "field": "distance", "order": "asc" }],
+    "warningsToCheck": ["busy after 11", "gets crowded"],
+    "useVector": true,
+    "useKeyword": true
+  },
+  "example_opensearch_body": {
+    "size": 3,
+    "query": {
+      "function_score": {
+        "query": {
+          "bool": {
+            "must": [
+              {
+                "multi_match": {
+                  "query": "quiet coffee shop open now affordable good reviews",
+                  "fields": ["name^2", "category", "reviews.text"],
+                  "type": "best_fields",
+                  "fuzziness": "AUTO"
+                }
+              }
+            ],
+            "filter": [
+              { "geo_distance": { "distance": "5km", "location": { "lat": 40.7128, "lon": -74.006 } } },
+              { "term": { "openNow": true } },
+              { "term": { "priceTier": "cheap" } }
+            ]
+          }
+        },
+        "functions": [
+          { "field_value_factor": { "field": "rating", "factor": 2, "modifier": "sqrt", "missing": 1 } },
+          { "gauss": { "location": { "origin": { "lat": 40.7128, "lon": -74.006 }, "scale": "2km", "decay": 0.5 } }
+        ],
+        "score_mode": "multiply",
+        "boost_mode": "multiply"
+      }
+    },
+    "sort": [
+      { "rating": "desc" },
+      { "_geo_distance": { "location": { "lat": 40.7128, "lon": -74.006 }, "order": "asc", "unit": "km" } }
+    ]
+  }
+}

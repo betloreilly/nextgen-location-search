@@ -1,0 +1,52 @@
+{
+  "settings": {
+    "number_of_shards": 1,
+    "number_of_replicas": 0,
+    "index.knn": true
+  },
+  "mappings": {
+    "properties": {
+      "name": { "type": "text", "fields": { "keyword": { "type": "keyword" } } },
+      "category": { "type": "keyword" },
+      "location": { "type": "geo_point" },
+      "priceTier": { "type": "keyword" },
+      "rating": { "type": "float" },
+      "openNow": { "type": "boolean" },
+      "imageUrl": { "type": "keyword" },
+      "embedding": {
+        "type": "knn_vector",
+        "dimension": 1536,
+        "space_type": "l2",
+        "method": {
+          "name": "hnsw",
+          "engine": "lucene",
+          "space_type": "l2",
+          "parameters": {
+            "ef_construction": 128,
+            "m": 24
+          }
+        }
+      },
+      "reviews": {
+        "type": "nested",
+        "properties": {
+          "text": { "type": "text" },
+          "embedding": {
+            "type": "knn_vector",
+            "dimension": 1536,
+            "space_type": "l2",
+            "method": {
+              "name": "hnsw",
+              "engine": "lucene",
+              "space_type": "l2",
+              "parameters": {
+                "ef_construction": 128,
+                "m": 24
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

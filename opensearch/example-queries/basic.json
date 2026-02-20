@@ -1,0 +1,45 @@
+{
+  "description": "Basic mode: BM25 match + filters + simple sort by distance",
+  "mode": "basic",
+  "query_plan": {
+    "mode": "basic",
+    "query": "coffee shop quiet",
+    "filters": {
+      "geo": { "lat": 40.7128, "lon": -74.006, "radiusKm": 5 },
+      "openNow": true,
+      "priceTier": "cheap"
+    },
+    "mustHaveFromReviews": [],
+    "niceToHaveFromReviews": [],
+    "boosts": {},
+    "sort": [{ "field": "distance", "order": "asc" }],
+    "warningsToCheck": [],
+    "useVector": false,
+    "useKeyword": true
+  },
+  "example_opensearch_body": {
+    "size": 3,
+    "query": {
+      "bool": {
+        "must": [
+          {
+            "multi_match": {
+              "query": "coffee shop quiet",
+              "fields": ["name^2", "category", "reviews.text"],
+              "type": "best_fields",
+              "fuzziness": "AUTO"
+            }
+          }
+        ],
+        "filter": [
+          { "geo_distance": { "distance": "5km", "location": { "lat": 40.7128, "lon": -74.006 } } },
+          { "term": { "openNow": true } },
+          { "term": { "priceTier": "cheap" } }
+        ]
+      }
+    },
+    "sort": [
+      { "_geo_distance": { "location": { "lat": 40.7128, "lon": -74.006 }, "order": "asc", "unit": "km" } }
+    ]
+  }
+}

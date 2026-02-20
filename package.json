@@ -1,0 +1,28 @@
+{
+  "name": "nextgen-location-search",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @nextgen-location-search/types && npm run build --workspaces --if-present",
+    "dev": "npm run dev --workspace=apps/backend & npm run dev --workspace=apps/frontend",
+    "dev:backend": "npm run dev --workspace=apps/backend",
+    "dev:frontend": "npm run dev --workspace=apps/frontend",
+    "embed": "node scripts/generate-embeddings.mjs",
+    "seed": "node scripts/seed-opensearch.mjs",
+    "ingest": "node scripts/ingest.mjs",
+    "seed:full": "npm run embed && npm run seed",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "@opensearch-project/opensearch": "^2.8.0",
+    "typescript": "^5.3.3",
+    "vitest": "^2.1.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

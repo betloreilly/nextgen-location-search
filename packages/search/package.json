@@ -1,0 +1,17 @@
+{
+  "name": "@nextgen-location-search/search",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@nextgen-location-search/types": "*",
+    "@opensearch-project/opensearch": "^2.8.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

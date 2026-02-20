@@ -1,0 +1,184 @@
+[
+  {
+    "name": "Quiet Corner Cafe",
+    "category": "coffee shop",
+    "location": { "lat": 40.714, "lon": -74.008 },
+    "priceTier": "cheap",
+    "rating": 4.6,
+    "openNow": true,
+    "imageUrl": "/data/quiet.jpg",
+    "reviews": [
+      { "text": "Very quiet in the mornings, perfect for reading." },
+      { "text": "Cozy and quiet atmosphere. Great coffee." },
+      { "text": "Gets busy after 11 on weekends but quiet before that." }
+    ]
+  },
+  {
+    "name": "Downtown Coffee House",
+    "category": "coffee shop",
+    "location": { "lat": 40.718, "lon": -74.002 },
+    "priceTier": "moderate",
+    "rating": 4.4,
+    "openNow": true,
+    "imageUrl": "/data/downtown.jpeg",
+    "reviews": [
+      { "text": "Good for working, decent wifi. Can get loud at lunch." },
+      { "text": "Friendly staff, good reviews overall." },
+      { "text": "Nice outdoor seating. A bit pricey." }
+    ]
+  },
+  {
+    "name": "Bean There",
+    "category": "coffee shop",
+    "location": { "lat": 40.711, "lon": -74.012 },
+    "priceTier": "cheap",
+    "rating": 4.7,
+    "openNow": false,
+    "imageUrl": "/data/bean.jpg",
+    "reviews": [
+      { "text": "Quiet and peaceful. Best kept secret." },
+      { "text": "Amazing reviews, everyone loves the vibe." },
+      { "text": "Cheap and cheerful. Very quiet weekdays." }
+    ]
+  },
+  {
+    "name": "Espresso Bar Central",
+    "category": "coffee shop",
+    "location": { "lat": 40.721, "lon": -73.998 },
+    "priceTier": "expensive",
+    "rating": 4.8,
+    "openNow": true,
+    "imageUrl": "/data/espressobar.jpeg",
+    "reviews": [
+      { "text": "Premium experience. Not quiet but excellent coffee." },
+      { "text": "Top ratings in the area. Worth the price." },
+      { "text": "Gets busy after 11. Book ahead for weekend brunch." }
+    ]
+  },
+  {
+    "name": "Morning Glory Cafe",
+    "category": "coffee shop",
+    "location": { "lat": 40.708, "lon": -74.015 },
+    "priceTier": "cheap",
+    "rating": 4.3,
+    "openNow": true,
+    "imageUrl": "/data/morningglory.jpg",
+    "reviews": [
+      { "text": "Quiet spot with good reviews. Open early." },
+      { "text": "Friendly staff, cheap eats. Good for a quick coffee." },
+      { "text": "Small and quiet. No wifi though." }
+    ]
+  },
+  {
+    "name": "Harbor View Coffee",
+    "category": "coffee shop",
+    "location": { "lat": 40.705, "lon": -74.018 },
+    "priceTier": "moderate",
+    "rating": 4.5,
+    "openNow": true,
+    "imageUrl": "/data/harbor.jpeg",
+    "reviews": [
+      { "text": "Great views. Can be busy after 11. Good reviews." },
+      { "text": "Quiet in the morning. Nice for remote work." },
+      { "text": "Staff is friendly. Prices are reasonable." }
+    ]
+  },
+  {
+    "name": "Artisan Roasters",
+    "category": "coffee shop",
+    "location": { "lat": 40.716, "lon": -74.005 },
+    "priceTier": "moderate",
+    "rating": 4.9,
+    "openNow": false,
+    "imageUrl": "/data/artisian.jpeg",
+    "reviews": [
+      { "text": "Best coffee in town. Very quiet and focused." },
+      { "text": "Outstanding reviews. A bit busy on Saturdays after 11." },
+      { "text": "Good reviews for quality and atmosphere." }
+    ]
+  },
+  {
+    "name": "Quick Sip",
+    "category": "coffee shop",
+    "location": { "lat": 40.719, "lon": -74.001 },
+    "priceTier": "cheap",
+    "rating": 4,
+    "openNow": true,
+    "imageUrl": "/data/quicksipcoffee.jpg",
+    "reviews": [
+      { "text": "Cheap and fast. Not particularly quiet." },
+      { "text": "Open now most of the time. Basic reviews." },
+      { "text": "No frills. Good for a quick cheap coffee." }
+    ]
+  },
+  {
+    "name": "The Single Origin Lab",
+    "category": "specialty coffee",
+    "location": { "lat": 40.7129, "lon": -74.0062 },
+    "priceTier": "expensive",
+    "rating": 4.8,
+    "openNow": true,
+    "imageUrl": "/data/singleorigin.png",
+    "reviews": [
+      { "text": "Best espresso I've had in the city. Super consistent." },
+      { "text": "Great pour-over options and really knowledgeable baristas." },
+      { "text": "Quiet vibe, perfect for a focused coffee break." }
+    ]
+  },
+  {
+    "name": "Grandma's Corner Café",
+    "category": "neighborhood cafe",
+    "location": { "lat": 40.7152, "lon": -74.0101 },
+    "priceTier": "moderate",
+    "rating": 4.5,
+    "openNow": true,
+    "imageUrl": "/data/grandmascorner.png",
+    "reviews": [
+      { "text": "Cozy place with homemade cakes and friendly staff." },
+      { "text": "Feels like a local spot. Warm and welcoming." },
+      { "text": "Nice for chatting and relaxing, especially in the afternoons." }
+    ]
+  },
+  {
+    "name": "Campus Brew",
+    "category": "student cafe",
+    "location": { "lat": 40.7135, "lon": -74.0065 },
+    "priceTier": "cheap",
+    "rating": 4.2,
+    "openNow": true,
+    "imageUrl": "/data/campusbrew.png",
+    "reviews": [
+      { "text": "Cheap coffee and lots of space for studying." },
+      { "text": "Good Wi-Fi and big tables. Always laptops around." },
+      { "text": "Not the quietest, but perfect for getting work done." }
+    ]
+  },
+  {
+    "name": "Blush & Beans",
+    "category": "aesthetic cafe",
+    "location": { "lat": 40.7184, "lon": -74.0017 },
+    "priceTier": "moderate",
+    "rating": 4.4,
+    "openNow": false,
+    "imageUrl": "/data/blushandbeans.png",
+    "reviews": [
+      { "text": "So cute inside — perfect for photos and brunch." },
+      { "text": "Love the matcha and the pastries. Great lighting!" },
+      { "text": "Gets busy fast, but the vibe is worth it." }
+    ]
+  },
+  {
+    "name": "BrewNation Coffee",
+    "category": "chain coffee",
+    "location": { "lat": 40.7108, "lon": -74.0096 },
+    "priceTier": "moderate",
+    "rating": 4.1,
+    "openNow": true,
+    "imageUrl": "/data/chain.png",
+    "reviews": [
+      { "text": "Reliable spot when you want something quick." },
+      { "text": "Always open, lots of seating, predictable menu." },
+      { "text": "Busy during rush hour but service is fast." }
+    ]
+  }
+]

@@ -1,0 +1,21 @@
+# Dependencies and build
+node_modules
+dist
+.next
+.turbo
+
+# Environment and secrets
+.env
+.env.local
+.env.*.local
+
+# Logs and OS
+*.log
+.DS_Store
+
+# Test and tooling
+coverage
+*.lcov
+
+# Generated data (large embedding file; regenerate with npm run embed)
+opensearch/sample-documents-with-embeddings.json
