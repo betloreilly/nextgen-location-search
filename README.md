@@ -2,6 +2,10 @@
 
 A full-stack demo that shows how **smarter search** can turn "find me a coffee shop" into a short, natural conversation, and why that matters for real businesses.
 
+<p align="center">
+  <img src="data/coffeeshops.gif" alt="Demo of conversational place search" width="600"/>
+</p>
+
 ---
 
 ## What This Project Does
