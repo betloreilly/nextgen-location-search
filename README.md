@@ -1,9 +1,9 @@
 # Next-Gen Location Search
 
-A full-stack demo that shows how **smarter search** can turn "find me a coffee shop" into a short, natural conversation, and why that matters for real businesses.
+A full-stack demo that shows how **smarter search** can turn "find me a coffee shop" into a short, natural conversation, and why that matters for real businesses. Use **watsonx.data OpenSearch** as your search engine.
 
 <p align="center">
-  <img src="data/coffeeshops.gif" alt="Demo of conversational place search" width="600"/>
+  <img src="data/coffeeshops.gif" alt="Demo of conversational place search" width="1200"/>
 </p>
 
 ---
@@ -49,7 +49,7 @@ In short: **Traditional** is keyword plus filters; **Semantic** adds meaning; **
 
 We need **three things in one place**: text search (BM25), vector search (for meaning), and geo (distance, "near me"). OpenSearch gives us all of that in a single engine: **keyword search** (BM25 on name, category, and review text), **vector search** (kNN on embeddings so "quiet place to work" matches by meaning), **geo** (distance filters and distance-based sorting), and **hybrid** (keyword and vector in one query, sorted by relevance then distance).
 
-Alternatives often force you to glue together a text search engine, a vector DB, and a geo layer. OpenSearch keeps the stack simple, runs in your own infra or as a managed service, and fits well into enterprise and cloud setups. For a deeper comparison with other vector/search solutions, see [VECTOR_DATABASE_COMPARISON.md](./docs/VECTOR_DATABASE_COMPARISON.md).
+Alternatives often force you to glue together a text search engine, a vector DB, and a geo layer. OpenSearch keeps the stack simple. This demo works with **watsonx.data OpenSearch** so you can use a managed instance without running the cluster yourself.  
 
 ---
 
@@ -65,13 +65,13 @@ The business wins because users get to the right place faster, use the app more,
 
 ---
 
-## Step-by-Step Setup (Run It Locally)
+## Step-by-Step Setup
 
-Anyone with Node.js and Docker (for OpenSearch) can run the app. Follow these steps in order.
+You need **Node.js** 18+ and **watsonx.data OpenSearch** (or another OpenSearch-compatible endpoint). Follow these steps in order.
 
 ### 1. Prerequisites
 
-You need **Node.js** 18 or newer and **Docker** (for running OpenSearch locally). Optionally, an **OpenAI-compatible API key** for Semantic, Intermediate, and Advanced modes and for embeddings.
+**Node.js** 18 or newer. **watsonx.data OpenSearch**: provision an OpenSearch instance in watsonx.data and note the endpoint URL and credentials. Optionally, an **OpenAI-compatible API key** for Semantic, Intermediate, and Advanced modes and for embeddings.
 
 ### 2. Clone and install
 
@@ -89,21 +89,23 @@ Copy the example env file and edit it:
 cp .env.example .env
 ```
 
-Edit `.env` and set at least the following.
+Edit `.env` and set:
 
-**OpenSearch:** `OPENSEARCH_URL` (e.g. `http://localhost:9200` if you run OpenSearch in Docker), and optionally `OPENSEARCH_USER` and `OPENSEARCH_PASS` (leave empty for local OpenSearch with no auth).
+**OpenSearch (required):** `OPENSEARCH_URL` (your watsonx.data OpenSearch endpoint), `OPENSEARCH_USER` and `OPENSEARCH_PASS`. Use the URL and credentials from your watsonx.data OpenSearch instance.
 
 **Optional (for Semantic, Intermediate, and Advanced):** `LLM_API_KEY` or `OPENAI_API_KEY` for the LLM and for generating embeddings. Without a key, you can still run **Traditional** mode and optionally index sample data without embeddings.
 
-### 4. Run OpenSearch
+### 4. watsonx.data OpenSearch
 
-Start OpenSearch (e.g. with Docker):
+Use **watsonx.data OpenSearch** as your search backend. In watsonx.data, provision or use an existing OpenSearch instance, then copy the **endpoint URL** and **credentials** into `.env` as `OPENSEARCH_URL`, `OPENSEARCH_USER`, and `OPENSEARCH_PASS`. The app talks to OpenSearch over the REST API, so as long as the endpoint is reachable from where the app runs, you’re set.
+
+**Alternative: run OpenSearch locally with Docker** (for quick dev only):
 
 ```bash
 docker run -d -p 9200:9200 -p 9600:9600 -e "discovery.type=single-node" -e "OPENSEARCH_INITIAL_ADMIN_PASSWORD=YourPassword123!" opensearchproject/opensearch:2.11.0
 ```
 
-If you set a password, put it in `.env` as `OPENSEARCH_PASS` and use `admin` (or your chosen user) for `OPENSEARCH_USER`. For a simple local setup without auth, you can use an image that allows empty auth and leave user/pass empty.
+Then set `OPENSEARCH_URL=http://localhost:9200` and `OPENSEARCH_USER=admin`, `OPENSEARCH_PASS=YourPassword123!` in `.env`.
 
 ### 5. Load sample data (ingest)
 
@@ -121,51 +123,19 @@ INGEST_FORCE=1 npm run ingest
 
 ### 6. Start the app
 
-**Backend** (default: http://localhost:3001):
-
-```bash
-npm run dev:backend
-```
-
-**Frontend** (default: http://localhost:3002):
-
-```bash
-npm run dev:frontend
-```
-
-Or run both from the root:
+From the project root:
 
 ```bash
 npm run dev
 ```
 
-Then open **http://localhost:3002** in your browser.
+Then open **http://localhost:3002** in your browser. The backend runs at http://localhost:3001.
 
 ### 7. Try the four modes
 
 Switch the mode (Traditional / Semantic / Intermediate / Advanced) in the UI. In **Traditional**, use the filters and keyword box. In **Semantic** and **Intermediate**, type a full sentence and click Search. In **Advanced**, use the chat; you can refine with follow-ups like *"Which one has more students?"*
 
 For suggested demo flows, see [docs/demo-queries.md](./docs/demo-queries.md).
-
----
-
-## Project Structure
-
-```
-apps/
-  backend/     # Express API, chat handler, OpenSearch client, embeddings
-  frontend/    # Next.js UI, mode tabs, filters, chat panel
-packages/
-  types/       # Shared types (QueryPlan, SearchMode, etc.)
-  memory/      # Conversation memory and constraint extraction
-  llm/         # LLM intent planning and chat response (Advanced)
-  planner/     # Builds the query plan per mode (Traditional / Semantic / Intermediate / Advanced)
-  search/      # OpenSearch query building and execution (BM25, kNN, geo, hybrid)
-  explain/     # Explanation text and review evidence
-scripts/       # Ingest, seed, and embedding generation
-opensearch/    # Index mapping, sample documents, example queries
-docs/          # Architecture, demo queries, usage notes
-```
 
 ---
 

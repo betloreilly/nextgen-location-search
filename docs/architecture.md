@@ -145,28 +145,3 @@ sequenceDiagram
 **Traditional** uses no LLM and no embedding: keyword and filters come from the left panel or memory, with a hard geo filter and sort by distance. **Semantic** has no LLM intent; the query from memory is embedded and OpenSearch runs kNN only (plus optional filters on openNow/priceTier), with sort by score only (no geo in the query). **Intermediate** uses the LLM for intent but no embedding: BM25 plus filters, boosts, and proximity sort, no kNN. **Advanced** uses full conversation memory, LLM intent, and optional embedding: hybrid query (BM25 + kNN), boosts, proximity sort, then LLM chat response and reordering.
 
 ---
-
-## OpenSearch Query Shape by Mode
-
-**Traditional** is keyword search plus a location filter; results are sorted by rating, then distance. **Semantic** is vector (embedding) search only; results by relevance score. **Intermediate** is keyword search with rating and distance boosts; sort by rating, then distance. **Advanced** combines keyword and vector; sort by relevance, then rating, then distance.
-
----
-
-## Packages and Their Roles
-
-| Package | Role |
-|---------|------|
-| **types** | Shared TypeScript types: `ChatMessage`, `QueryPlan`, `SearchMode`, `SearchResultHit`, etc. |
-| **memory** | Reads the conversation (or last message) and extracts entity, attributes, filters, and raw query. No LLM. |
-| **llm** | Calls the LLM: intent plan (query, filters, boosts, isSearchQuery) and, in Advanced, chat reply or conversational reply. |
-| **planner** | Builds the **QueryPlan** for the current mode: combines memory, optional intent, and last user message; handles “which one X” by extracting the criterion. |
-| **search** | Builds the OpenSearch request body from the plan (and size, location, optional vector) and runs the search. |
-| **explain** | Builds the explanation block (why it matched, filters applied, review snippets, warnings) from the top hits and the plan. |
-
-The **backend** ties them together: it calls memory → (optional) LLM → planner → (optional) embed → search → explain → (optional) LLM chat, then returns results, explanation, query plan, and optional chat text to the **frontend**.
-
----
-
-## Where to Go Next
-
-[Demo queries](./demo-queries.md) has example flows for each mode. The [README](../README.md) covers setup and usage. [VECTOR_DATABASE_COMPARISON.md](../VECTOR_DATABASE_COMPARISON.md) explains why we use OpenSearch versus other vector/search solutions.

@@ -3,6 +3,7 @@ node_modules
 dist
 .next
 .turbo
+archive/
 
 # Environment and secrets
 .env
