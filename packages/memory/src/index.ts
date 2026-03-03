@@ -54,6 +54,8 @@ function extractRawQuery(text: string): string {
 
 const ENTITY_PATTERNS: Array<{ pattern: RegExp; entity: string }> = [
   { pattern: /\b(coffee\s*shop|cafe|coffeehouse)\b/, entity: "coffee shop" },
+  // Coffee drink terms imply a coffee shop even if "cafe" is not mentioned
+  { pattern: /\b(espresso|latte|cappuccino|pour.?over|flat\s*white|cold\s*brew|matcha|americano|macchiato)\b/, entity: "coffee shop" },
   { pattern: /\b(restaurant|dining|eat)\b/, entity: "restaurant" },
   { pattern: /\b(hotel|stay|accommodation)\b/, entity: "hotel" },
   { pattern: /\b(bar|pub)\b/, entity: "bar" },
@@ -111,6 +113,13 @@ function extractReviewPreferences(text: string): string[] {
   }
   if (/\b(quiet)\b/.test(text)) prefs.push("quiet");
   if (/\b(friendly\s*staff|nice\s*staff)\b/.test(text)) prefs.push("friendly staff");
+  // Specific coffee drink terms → search in reviews
+  if (/\b(espresso)\b/.test(text)) prefs.push("espresso");
+  if (/\b(pour.?over)\b/.test(text)) prefs.push("pour-over");
+  if (/\b(latte)\b/.test(text)) prefs.push("latte");
+  if (/\b(cappuccino)\b/.test(text)) prefs.push("cappuccino");
+  if (/\b(flat\s*white)\b/.test(text)) prefs.push("flat white");
+  if (/\b(cold\s*brew)\b/.test(text)) prefs.push("cold brew");
   return prefs;
 }
 

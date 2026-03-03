@@ -272,7 +272,7 @@ export function ChatbotPanel({ userContext, onResultsUpdate, currentKeyword }: C
                 </div>
                 {msg.results && msg.results.length > 0 && (
                   <div style={{ marginTop: "0.35rem", display: "flex", flexDirection: "column", gap: "0.25rem", width: "100%" }}>
-                    {msg.results.slice(0, 3).map((r) => (
+                    {msg.results.slice(0, 6).map((r) => (
                       <div
                         key={r.id}
                         style={{

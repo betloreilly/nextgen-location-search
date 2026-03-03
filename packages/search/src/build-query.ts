@@ -12,8 +12,8 @@ export interface SearchOptions {
 
 /**
  * Build OpenSearch request body from QueryPlan.
- * Beginner mode: geo_distance is a hard filter (strict radius).
- * Intermediate / Advanced mode: geo is a proximity sort only — all places returned, closer ranked higher.
+ * Beginner / Intermediate / Advanced mode: geo_distance is always a hard filter (strict radius).
+ *   Advanced uses userLocation directly with plan radius (or default 5 km) so results are always local.
  * Semantic mode: geo is a proximity sort only (kNN path).
  */
 const EMBEDDING_FIELD = "embedding";
@@ -63,19 +63,59 @@ export function buildSearchBody(
   // ----- Bool query -----
   // Traditional with empty keyword uses "place" — treat as match_all so geo filter returns all places in area
   const useKeywordMatch = plan.useKeyword && plan.query && !(plan.mode === "beginner" && plan.query === "place");
+  const keywordFields = ["name^2", "category", "reviews.text"] as const;
   if (useKeywordMatch) {
-    must.push({
-      multi_match: {
-        query: plan.query,
-        fields: ["name^2", "category", "reviews.text"],
-        type: "best_fields",
-        fuzziness: "AUTO",
-      },
-    });
+    if (plan.mode === "advanced") {
+      // Advanced: bool with must (OR + fuzziness) + should (phrase with slop for phrase boost)
+      must.push({
+        bool: {
+          must: [
+            {
+              multi_match: {
+                query: plan.query,
+                fields: [...keywordFields],
+                operator: "OR",
+                fuzziness: "AUTO",
+              },
+            },
+          ],
+          should: [
+            {
+              multi_match: {
+                query: plan.query,
+                fields: [...keywordFields],
+                type: "phrase",
+                slop: 2,
+                boost: 3,
+              },
+            },
+          ],
+        },
+      });
+    } else {
+      must.push({
+        multi_match: {
+          query: plan.query,
+          fields: [...keywordFields],
+          type: "best_fields",
+          fuzziness: "AUTO",
+        },
+      });
+    }
   }
 
-  // ----- Geo: hard filter for Beginner only; proximity sort-only for Intermediate/Advanced -----
-  if (plan.mode === "beginner" && plan.filters.geo) {
+  // ----- Geo: always a hard filter for Beginner, Intermediate, and Advanced -----
+  // Advanced uses userLocation directly so it always filters to nearby results even when the user
+  // didn't explicitly say "near me". Radius comes from the plan (LLM or memory) or defaults to 5 km.
+  if (plan.mode === "advanced" && userLocation) {
+    const radiusKm = plan.filters.geo?.radiusKm ?? 5;
+    filter.push({
+      geo_distance: {
+        distance: `${radiusKm}km`,
+        location: { lat: userLocation.lat, lon: userLocation.lon },
+      },
+    });
+  } else if (plan.filters.geo && (plan.mode === "beginner" || plan.mode === "intermediate")) {
     const { lat, lon, radiusKm } = plan.filters.geo;
     filter.push({
       geo_distance: {
@@ -94,11 +134,72 @@ export function buildSearchBody(
   if (openNowPreference && !usePreferencesOnly) {
     filter.push({ term: { openNow: true } });
   }
-  if (pricePreference && !usePreferencesOnly) {
+  // When user asks "which one is cheaper" we set priceTier in planner; apply as hard filter so only that tier is returned.
+  if (pricePreference) {
     filter.push({ term: { priceTier: pricePreference } });
   }
 
   const bool: Record<string, unknown> = { must, filter };
+
+  // ----- Review evidence: nested queries against reviews.text -----
+  // Advanced mode uses TWO layers so review content drives ranking even when the LLM misses a term:
+  //   Layer 1 — explicit mustHaveFromReviews phrases (set by LLM) — highest boost
+  //   Layer 2 — auto-extracted meaningful terms from plan.query (advanced only) — secondary boost
+  const reviewEvidenceWeight =
+    plan.boosts.reviewEvidence != null ? BOOST_WEIGHTS[plan.boosts.reviewEvidence] : 2;
+  const reviewBoostMultiplier = plan.mode === "advanced" ? 4 : 2.5;
+  const reviewPhraseBoost = reviewEvidenceWeight * reviewBoostMultiplier;
+
+  const reviewShouldClauses: Record<string, unknown>[] = [];
+
+  // Layer 1: explicit phrases the LLM identified
+  for (const phrase of (plan.mustHaveFromReviews ?? []).slice(0, 5)) {
+    const trimmed = phrase.trim();
+    if (!trimmed) continue;
+    reviewShouldClauses.push({
+      nested: {
+        path: "reviews",
+        query: { match: { "reviews.text": { query: trimmed } } },
+        score_mode: "max",
+        boost: reviewPhraseBoost,
+      },
+    });
+  }
+
+  // Layer 2 (advanced only): auto-search each meaningful query term in reviews —
+  // ensures review relevance even when mustHaveFromReviews is sparse.
+  if (plan.mode === "advanced" && plan.query) {
+    const genericTerms = new Set([
+      "shop", "place", "cafe", "cafes", "bar", "restaurant", "hotel", "coffee",
+      "near", "good", "best", "great", "nice",
+    ]);
+    const alreadyCovered = new Set(
+      (plan.mustHaveFromReviews ?? []).map((t) => t.toLowerCase().trim())
+    );
+    const autoTerms = plan.query
+      .toLowerCase()
+      .split(/\s+/)
+      .filter((t) => t.length > 3 && !genericTerms.has(t) && !alreadyCovered.has(t));
+
+    for (const term of autoTerms.slice(0, 4)) {
+      reviewShouldClauses.push({
+        nested: {
+          path: "reviews",
+          query: { match: { "reviews.text": { query: term } } },
+          score_mode: "max",
+          boost: reviewPhraseBoost * 0.6,
+        },
+      });
+    }
+  }
+
+  if (reviewShouldClauses.length > 0) {
+    bool.should = [
+      ...(Array.isArray(bool.should) ? bool.should : []),
+      ...reviewShouldClauses,
+    ];
+  }
+
   if (must.length === 0) {
     bool.must = [{ match_all: {} }];
   }
@@ -125,7 +226,14 @@ export function buildSearchBody(
         },
       });
     }
-    if (plan.boosts.distance && userLocation) {
+    // Advanced: the hard geo filter already handles proximity — only apply gauss decay when
+    // the user explicitly asked for "closest/nearest" (boosts.distance === "high").
+    // Non-advanced: apply whenever distance boost is set (existing behaviour).
+    const applyDistanceDecay =
+      userLocation &&
+      plan.boosts.distance &&
+      (plan.mode !== "advanced" || plan.boosts.distance === "high");
+    if (applyDistanceDecay) {
       fieldFactor.push({
         gauss: {
           location: {
@@ -163,20 +271,24 @@ export function buildSearchBody(
   // ----- Sort -----
   const sort: Array<Record<string, string | Record<string, unknown>>> = [];
   const isAdvancedHybrid = plan.mode === "advanced" && queryVector && queryVector.length > 0;
-  // Advanced hybrid: rank by relevance first (keyword + semantic score), then proximity as tiebreaker
+  // Advanced hybrid: relevance (_score) is always the primary sort.
   if (isAdvancedHybrid) {
     sort.push({ _score: "desc" });
   }
   for (const s of plan.sort) {
     if (s.field === "distance") {
-      // Added explicitly below
+      // Handled explicitly below
     } else if (s.field !== "_score") {
       sort.push({ [s.field]: s.order });
     }
   }
-  // Beginner: geo_distance is a hard filter, proximity sort is secondary
-  // Intermediate/Advanced: no hard geo filter, so proximity sort is the only way to rank by location
-  if (userLocation) {
+  // Proximity sort:
+  // - Non-advanced modes: always append geo_distance as a secondary tiebreaker.
+  // - Advanced mode: geo is already a hard filter (radius); only add proximity sort when the
+  //   plan explicitly includes a "distance" sort field (user asked "which is closest").
+  const wantsProximitySort =
+    plan.mode !== "advanced" || plan.sort.some((s) => s.field === "distance");
+  if (userLocation && wantsProximitySort) {
     sort.push({
       _geo_distance: {
         location: { lat: userLocation.lat, lon: userLocation.lon },
@@ -187,15 +299,14 @@ export function buildSearchBody(
   }
 
   // ----- Advanced: hybrid (BM25 + kNN) when query vector is available -----
-  // BM25 naturally dominates: kNN scores are 0–1; BM25 for a strong name/keyword match is typically 5–15+.
-  // k:5 limits semantic to the top 5 most similar docs so it doesn't flood weak semantic matches into results.
-  // Sort by _score first (set above) means relevance drives order, proximity is just a tiebreaker.
+  // kNN k is set to the full result size so semantic search can surface all relevant candidates —
+  // not just the top 5. BM25 + review boosts then re-rank them by relevance.
   let finalQuery: Record<string, unknown> = query;
   if (plan.mode === "advanced" && queryVector && queryVector.length > 0) {
     const knnClause: Record<string, unknown> = {
       [EMBEDDING_FIELD]: {
         vector: queryVector,
-        k: 5,
+        k: Math.max(size, 15),
       },
     };
     finalQuery = {

@@ -2,7 +2,7 @@
   {
     "name": "Quiet Corner Cafe",
     "category": "coffee shop",
-    "location": { "lat": 40.714, "lon": -74.008 },
+    "location": { "lat": 40.731, "lon": -74.006 },
     "priceTier": "cheap",
     "rating": 4.6,
     "openNow": true,
@@ -72,7 +72,7 @@
   {
     "name": "Harbor View Coffee",
     "category": "coffee shop",
-    "location": { "lat": 40.705, "lon": -74.018 },
+    "location": { "lat": 40.7137, "lon": -74.006 },
     "priceTier": "moderate",
     "rating": 4.5,
     "openNow": true,
@@ -114,7 +114,7 @@
   {
     "name": "The Single Origin Lab",
     "category": "specialty coffee",
-    "location": { "lat": 40.7129, "lon": -74.0062 },
+    "location": { "lat": 40.7173, "lon": -74.006 },
     "priceTier": "expensive",
     "rating": 4.8,
     "openNow": true,

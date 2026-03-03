@@ -46,7 +46,7 @@ flowchart LR
   EMB --> OS
 ```
 
-The **User** interacts with the **Frontend** (filters, keyword box, or chat). The **Frontend** sends a single request to the **Backend** at `POST /api/chat` with mode, messages, and user context (e.g. location). The **Chat Handler** coordinates everything: it calls **Memory**, **LLM** (for intent), **Planner** (to build a query plan), **Search** (to build and run the OpenSearch query), and **Explain** (to build explanation text). **OpenSearch** holds the place index (keyword fields, geo, and optional vectors) and returns ranked hits. The **LLM** and **Embedding** APIs are used only in Semantic, Intermediate, and Advanced modes.
+The **User** interacts with the **Frontend** (filters, keyword box, or chat). The **Frontend** sends a single request to the **Backend** at `POST /api/chat` with mode, messages, and user context (e.g. location). The **Chat Handler** coordinates everything. In **Traditional**, **Semantic**, and **Intermediate** it uses **Memory** and (for Intermediate) **LLM intent** plus **Planner** to build a query plan. In **Advanced** the **LLM** receives the full conversation and produces the **query plan directly** (query, filters, review terms, sort); Memory and Planner are only used as a fallback if the LLM call fails. **Search** turns the plan into an OpenSearch request and runs it; **Explain** builds the explanation text. **OpenSearch** holds the place index (keyword fields, geo, and optional vectors) and returns ranked hits. The **LLM** and **Embedding** APIs are used in Semantic, Intermediate, and Advanced modes.
 
 ---
 
@@ -60,26 +60,32 @@ This flowchart shows the decisions the backend makes. Only one path runs per req
 
 ```mermaid
 flowchart TD
-  A[Frontend: POST /api/chat] --> B[Extract memory from messages]
-  B --> C{Intermediate or Advanced?}
+  A[Frontend: POST /api/chat] --> ADV{Advanced?}
+  ADV -->|Yes| A1[LLM: full query plan from conversation]
+  A1 --> A2{Conversational?}
+  A2 -->|Yes, e.g. hi| F[LLM: conversational reply]
+  F --> Z1[Return: chat only, no results]
+  A2 -->|No: real search| H1[Embed query]
+  H1 --> J[OpenSearch: search]
+  ADV -->|No| B[Extract memory from messages]
+  B --> C{Intermediate?}
   C -->|No: Traditional or Semantic| G[Build query plan from memory]
   C -->|Yes| D[LLM: intent plan]
-  D --> E{Advanced and conversational?}
-  E -->|Yes, e.g. hi| F[LLM: conversational reply]
-  F --> Z1[Return: chat text, no results]
-  E -->|No: real search| G
-  G --> H{Semantic or Advanced?}
+  D --> G
+  G --> H{Semantic?}
   H -->|Yes| I[Embedding API: query to vector]
-  I --> J[OpenSearch: search]
   H -->|No| J
+  I --> J
   J --> K[Build explanation from hits]
   K --> L{Advanced?}
   L -->|Yes| M[LLM: chat reply and reorder]
-  M --> Z2[Return: results plus explanation plus chat]
+  M --> Z2[Return: results + explanation + chat]
   L -->|No| Z2
 ```
 
-In **Traditional** and **Semantic** we skip LLM intent and go straight to **Build query plan**. In **Intermediate** and **Advanced** the LLM returns an intent; in **Advanced**, if the message is conversational (e.g. "hi"), we return a chat reply and stop (no search). **Build query plan** is where the Planner produces one plan (query, filters, boosts, sort) for the current mode. **Embedding** runs only for Semantic and Advanced; then we call OpenSearch with or without a vector. **OpenSearch** always runs when we're doing a real search (not the conversational shortcut). A **chat reply** is generated only in Advanced after a real search; then we return results, explanation, and chat text.
+**Advanced** uses a different path: the LLM receives the full conversation and returns a complete **query plan** (query, filters, review terms, sort). No memory extraction or Planner step in the success path; those are only used if the LLM call fails. If the LLM says the turn is conversational (e.g. "hi"), we return a chat reply and stop. Otherwise we embed the plan’s query, run OpenSearch (hybrid BM25 + kNN), build the explanation, then generate a chat reply and reorder results.
+
+**Traditional**, **Semantic**, and **Intermediate** all use **Extract memory** and (for Intermediate) **LLM intent plan**; the **Planner** builds one query plan from memory and optional intent. **Embedding** runs for Semantic and for Advanced; OpenSearch then runs with the plan. A **chat reply** is generated only in Advanced after a real search.
 
 ### Step 2: Who talks to whom (simplified)
 
@@ -96,8 +102,7 @@ sequenceDiagram
   User->>Frontend: Message or filters
   Frontend->>Backend: POST /api/chat
 
-  Note over Backend: 1. Memory (always)
-  Note over Backend: 2. Intent (Intermediate/Advanced only)
+  Note over Backend: Advanced: LLM full query plan. Others: Memory + Intent (Intermediate) + Planner
 
   alt Advanced and conversational
     Backend->>LLM: Conversational reply
@@ -120,9 +125,11 @@ sequenceDiagram
 
 ### Step 3: What each step does
 
-**Memory** extracts entity (e.g. “coffee shop”), attributes (e.g. “quiet”), filters (open now, distance, price), and raw query from the conversation. In Advanced mode the full conversation is used; in other modes only the latest user message.
-**Intent** (Intermediate/Advanced) is where the LLM turns the conversation into a structured plan: search query, filters, boosts, sort, and whether this is a search or just chat. If it’s conversational (e.g. “hi”), the backend returns a chat reply and skips search.
-**Planner** builds a single **QueryPlan** for the chosen mode: the keyword query, filters, boosts, sort order, and whether to use vector search. For “which one has X” follow-ups, it extracts the criterion (e.g. “students”) and uses it as the query.
+**Advanced path (LLM query plan):** The LLM receives the full conversation and user location and returns a complete **QueryPlan** (query keywords, filters, mustHaveFromReviews, boosts, sort). The backend uses this plan directly—no separate Memory or Planner step. If the LLM flags the turn as conversational (e.g. "hi"), the backend returns a chat reply and skips search. If the LLM call fails, the backend falls back to Memory + Intent + Planner as in Intermediate.
+
+**Memory** (Traditional, Semantic, Intermediate, and Advanced fallback): Extracts entity (e.g. “coffee shop”), attributes (e.g. “quiet”), filters (open now, distance, price), and raw query. In Intermediate, last message only; in Advanced fallback, full conversation.
+**Intent** (Intermediate only; Advanced uses full query plan): The LLM turns the user message into a structured intent (query, filters, boosts, sort). The Planner merges this with memory to build the QueryPlan.
+**Planner** (Traditional, Semantic, Intermediate, and Advanced fallback): Builds a **QueryPlan** from memory and (for Intermediate) LLM intent. Not used in Advanced when the LLM returns a plan directly.
 **Embedding** (Semantic/Advanced): The plan’s query text is sent to the embedding API; the returned vector is used for kNN in OpenSearch.
 **Search** turns the plan into an OpenSearch request (body and sort). The backend runs the search and gets back a list of hits.
 **Explain** builds the explanation block (why results matched, filters applied, review snippets).
@@ -134,14 +141,14 @@ sequenceDiagram
 
 | Step | Traditional | Semantic | Intermediate | Advanced |
 |------|-------------|----------|--------------|----------|
-| Memory | Last message only | Last message only | Last message only | **Full conversation** |
-| LLM intent | No | No | **Yes** | **Yes** (+ conversational check) |
-| Planner | Yes (keyword + filters from memory) | Yes (query from memory) | Yes (intent + memory) | Yes (intent + memory + refinement) |
-| Embedding | No | **Yes** (required) | No | Yes (optional; fallback to keyword) |
-| OpenSearch | BM25 + geo filter | **kNN only** (no geo in query) | BM25 + boosts + geo sort | **Hybrid** (BM25 + kNN) + boosts + geo sort |
+| Memory | Last message only | Last message only | Last message only | Fallback only (if LLM fails) |
+| LLM | No | No | **Intent plan** (one message) | **Full query plan** (entire conversation) |
+| Planner | Yes (keyword + filters from memory) | Yes (query from memory) | Yes (intent + memory) | Fallback only (if LLM fails) |
+| Embedding | No | **Yes** (required) | No | Yes (query from plan) |
+| OpenSearch | BM25 + geo filter | **kNN only** | BM25 + boosts + geo sort | **Hybrid** (BM25 + kNN) + review boosts + geo filter |
 | Explain | Yes | Yes | Yes | Yes |
 | Chat response | No | No | No | **Yes** (and result reorder) |
 
-**Traditional** uses no LLM and no embedding: keyword and filters come from the left panel or memory, with a hard geo filter and sort by distance. **Semantic** has no LLM intent; the query from memory is embedded and OpenSearch runs kNN only (plus optional filters on openNow/priceTier), with sort by score only (no geo in the query). **Intermediate** uses the LLM for intent but no embedding: BM25 plus filters, boosts, and proximity sort, no kNN. **Advanced** uses full conversation memory, LLM intent, and optional embedding: hybrid query (BM25 + kNN), boosts, proximity sort, then LLM chat response and reordering.
+**Traditional** uses no LLM and no embedding: keyword and filters come from the left panel or memory, with a hard geo filter and sort by distance. **Semantic** has no LLM; the query from memory is embedded and OpenSearch runs kNN only (plus optional filters), with sort by score. **Intermediate** uses the LLM for an intent plan (one message) and the Planner to build the QueryPlan; BM25 plus filters, boosts, and proximity sort. **Advanced** sends the full conversation to the LLM, which returns a complete QueryPlan (query, filters, review terms, sort); the backend uses it directly with hybrid search (BM25 + kNN), review-based ranking, and a hard geo filter. Memory and Planner are only used if the LLM call fails. After search, the LLM generates a chat reply and can reorder results.
 
 ---

@@ -18,6 +18,7 @@ Examples:
 - "find me a coffee shop", "I want somewhere quiet to work" → isSearchQuery: true
 - "what was that first one again?", "which one was cheaper?" → isSearchQuery: true (refining previous search)
 - "show me open places near the beach" → isSearchQuery: true
+- "which one from the list", "which should I go to", "which would you recommend?" → isSearchQuery: true
 
 Output a single JSON object (no markdown, no code fence) with this exact schema:
 {
@@ -48,12 +49,22 @@ Filters (you MUST set these when the user mentions them):
 - When the user says "open", "open now", "currently open", or "that's open" -> set "filters.openNow": true. Never omit openNow when they ask for an open place.
 - When the user says "near the beach", "by the water", "within X km", etc. -> set "filters.geoRadiusKm" if they give a distance; location terms like "beach" go into "query" so the search can match them.
 
+"mustHaveFromReviews" (CRITICAL — use this whenever the user asks about a specific quality, item, or feature):
+- When the user asks for a specific food or drink item (espresso, latte, pour-over, cappuccino, matcha, flat white, cold brew, etc.) → add that item to mustHaveFromReviews AND set boosts.reviewEvidence: "high". These items are mentioned in customer reviews, not in place names.
+- When the user asks about any specific feature, vibe, or quality that customers would mention in reviews (quiet, wifi, outdoor seating, students, friendly staff, good for work, cozy, food, snacks, etc.) → add to mustHaveFromReviews.
+- IMPORTANT: NEVER add discourse markers or filler phrases to mustHaveFromReviews. Words like "as well", "too", "also", "as well as", "though" are NOT search terms — they are English filler. For "which one has food as well", only add "food", not "as well".
+- Example: "best espresso in town" → query: "coffee espresso", mustHaveFromReviews: ["espresso"], boosts: { distance: "low", reviewEvidence: "high" }
+- Example: "where can I get a good pour-over?" → query: "coffee pour-over", mustHaveFromReviews: ["pour-over"], boosts: { reviewEvidence: "high" }
+- Example: "quiet place to work with wifi" → query: "quiet coffee shop", mustHaveFromReviews: ["quiet", "wifi"], boosts: { reviewEvidence: "high" }
+
 "query" (search keywords sent to OpenSearch):
 - Include BOTH place type AND location/atmosphere when the user mentions them. Examples: "coffee shop beach", "restaurant near water", "quiet cafe wifi". Do not drop location terms like "beach".
 - "query" must be 1-5 words: place type + optional location (beach, water, harbor, downtown) + optional vibe (quiet, lively). NEVER include question phrases ("where should i go", "should i go", "can you find").
-- CRITICAL for follow-ups: When the user asks "which one has X", "which one is better for Y", or "which has more Z", set "query" to the CRITERION (X, Y, Z) so search can rank by it. Examples: "which one has more students" -> "query": "students" or "student cafe"; "which one has wifi?" -> "query": "wifi"; "which one is best for studying?" -> "query": "studying" or "student"; "which has outdoor seating?" -> "query": "outdoor seating". This ensures places like Campus Brew (student cafe) rank when the user asks for students.
+- CRITICAL for follow-ups: When the user asks "which one has X", "which one is better for Y", or "which has more Z", set "query" to the CRITERION (X, Y, Z) so search can rank by it. Also add X/Y/Z to mustHaveFromReviews. Examples: "which one has more students" -> "query": "students" or "student cafe", mustHaveFromReviews: ["students"]; "which one has wifi?" -> "query": "wifi", mustHaveFromReviews: ["wifi"]; "which one is best for studying?" -> "query": "studying", mustHaveFromReviews: ["studying", "students"]; "which has outdoor seating?" -> "query": "outdoor seating", mustHaveFromReviews: ["outdoor seating"].
+- CRITICAL for vague follow-ups ("which one from the list", "which one would you recommend", "which should I go to", "which one is better"): Look at the conversation history to find what place type/category was being searched. Keep that place type as the query (e.g. "coffee shop"). Set boosts.rating: "high", boosts.reviewEvidence: "high". Do NOT set query to "which one" or any question phrase.
+- When the user asks "which one is close to me", "which is nearest", "which is closest", "which one is nearby", or similar proximity questions: Keep the place type from context as the query (e.g. "coffee shop"). Set boosts.distance: "high", sort: ["distance asc"]. Do NOT set query to "close", "near", "closest", "nearest", or any proximity term.
+- EXCEPTION: When the user asks about "better reviews", "best reviews", or "good reviews", do NOT set query to those words. Keep "query" as the place type from context (e.g. "coffee shop") and set "boosts": { "rating": "high", "reviewEvidence": "high" }, "sort": ["rating desc", "distance asc"]. When the user asks for "open" places or "which ones are open" or "cafes that are open", do NOT set query to "open". Keep "query" as the place type (e.g. "coffee shop") and set "filters": { "openNow": true }. When the user asks "which one is cheaper", "the cheaper one", or "which is cheapest", do NOT set query to "cheaper" or "cheapest". Keep "query" as the place type and set "filters": { "priceTier": "cheap" }.
 - Example: "I want to go to an open coffee shop near the beach, where should i go?" -> "query": "coffee shop beach", "filters": { "openNow": true }, and geoRadiusKm if they said a distance.
-- Example: "quiet place to work with wifi" -> "query": "quiet wifi" or "quiet coffee shop", mustHaveFromReviews: ["quiet", "wifi"] or similar.
 - In boosts, only set "rating" to medium or high when the user explicitly asks to prioritize or sort by rating. Otherwise omit "rating". sort is array of "field order". Output only valid JSON.`;
 
 /**

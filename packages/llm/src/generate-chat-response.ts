@@ -2,16 +2,18 @@ import type { ChatMessage, SearchResultHit } from "@nextgen-location-search/type
 import type { LLMClientLike } from "./generate-intent.js";
 
 const CHAT_SYSTEM_PROMPT = `You are a helpful, friendly local search assistant. 
-Given a user's conversation and a list of place results from a search, write a concise conversational reply (2-4 sentences) that:
-- Highlights the best match and why it fits the user's request
-- Mentions 1-2 standout details (rating, vibe, distance, price)
+Given a user's conversation and a list of place results (with their customer reviews), write a concise conversational reply (2-4 sentences) that:
+- Highlights the best match and why it fits the user's request — use review evidence when it directly supports the answer (e.g. "reviews mention great espresso")
+- Mentions 1-2 standout details (rating, vibe, distance, price, or a specific review quote)
 - Suggests a natural next step or follow-up ("You might also want to try...", "If you need something cheaper...", "Let me know if you'd like open-now places only")
 - Uses a warm, opinionated tone — act like a knowledgeable local friend
 Keep the reply short and conversational. Do not list all results.
 
+When ordering results, PRIORITISE places whose reviews directly mention what the user asked for (e.g. if the user asked about espresso, rank places that mention espresso in reviews highest).
+
 IMPORTANT: At the very end of your reply, on a new line, add exactly:
 ORDER: <name1>, <name2>, <name3>
-Use the exact place names from the results list, in the order you recommend (best match first). Include every result you were given. This line is used to reorder the listing for the user.`;
+Use the exact place names from the results list, in the order you recommend (best match first, based on review evidence and user intent). Include every result you were given. This line is used to reorder the listing for the user.`;
 
 const CONVERSATIONAL_SYSTEM_PROMPT = `You are a warm, friendly local search assistant called "Find Places". 
 The user is just chatting — they are NOT asking you to find a place right now.
@@ -43,10 +45,15 @@ export async function generateChatResponse(
   const lastUserMessage = messages.filter((m) => m.role === "user").slice(-1)[0]?.content ?? "";
 
   const resultSummary = results
-    .slice(0, 3)
-    .map((r, i) =>
-      `${i + 1}. ${r.name} (${r.category}, ${r.priceTier ?? "?"}, rating ${r.rating}${r.distanceKm != null ? `, ${r.distanceKm.toFixed(1)} km away` : ""}${r.openNow !== undefined ? `, ${r.openNow ? "open now" : "currently closed"}` : ""})`
-    )
+    .slice(0, 5)
+    .map((r, i) => {
+      const reviewText = r.reviews
+        ?.slice(0, 2)
+        .map((rv) => rv.text)
+        .join(" | ");
+      const meta = `${r.category}, ${r.priceTier ?? "?"}, rating ${r.rating}${r.distanceKm != null ? `, ${r.distanceKm.toFixed(1)} km away` : ""}${r.openNow !== undefined ? `, ${r.openNow ? "open now" : "currently closed"}` : ""}`;
+      return `${i + 1}. ${r.name} (${meta})${reviewText ? `\n   Reviews: "${reviewText}"` : ""}`;
+    })
     .join("\n");
 
   const conversationContext = messages

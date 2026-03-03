@@ -39,9 +39,9 @@ Each mode adds one more layer. You can try the same question in each to see the 
 | **Traditional** | Keyword (e.g. "coffee") plus filters you set yourself (category, open now, distance). Simple and predictable. | When you know exactly what to type and which filters to use. |
 | **Semantic** | Your full sentence is turned into a vector; results match **meaning** (e.g. "quiet place to work" finds places described as calm, good for studying). No filters from natural language. | When the right words are hard to guess but the *idea* is clear. |
 | **Intermediate** | An LLM reads your message and outputs **structured intent**: query terms, filters (open now, distance, price), and boosts. So "open now near the beach" becomes a real query plus filters. One shot, no memory. | When you want one natural-language request turned into a proper search. |
-| **Advanced** | Same as Intermediate, plus **conversation memory** and **hybrid search** (keyword + vector). You can follow up with *"Which one has more students?"* and the app re-ranks by that. Chat-style replies and reordered results. | When the full flow is conversational and you refine over multiple turns. |
+| **Advanced** | The **LLM reads the full conversation** and produces the **OpenSearch query plan directly** (keywords, filters, review terms, sort). No regex extraction or multi-step planner—the model reasons over the whole chat and outputs one plan. Hybrid search (keyword + vector), review-based ranking, and chat-style replies with reordered results. | When the full flow is conversational and you refine over multiple turns (e.g. *"calm cafe within 1 km"* then *"which one has wifi?"*). |
 
-In short: **Traditional** is keyword plus filters; **Semantic** adds meaning; **Intermediate** adds intent and structure; **Advanced** adds memory and hybrid so follow-ups and "which one" questions work.
+In short: **Traditional** is keyword plus filters; **Semantic** adds meaning; **Intermediate** adds intent and structure (one message); **Advanced** uses the LLM to build the query plan from the entire conversation so follow-ups and "which one" questions work without losing context.
 
 ---
 
@@ -135,7 +135,7 @@ Then open **http://localhost:3002** in your browser. The backend runs at http://
 
 Switch the mode (Traditional / Semantic / Intermediate / Advanced) in the UI. In **Traditional**, use the filters and keyword box. In **Semantic** and **Intermediate**, type a full sentence and click Search. In **Advanced**, use the chat; you can refine with follow-ups like *"Which one has more students?"*
 
-For suggested demo flows, see [docs/demo-queries.md](./docs/demo-queries.md).
+For a 5-minute script and suggested queries, see [docs/5-minute-demo.md](docs/5-minute-demo.md) and [docs/demo-queries.md](docs/demo-queries.md).
 
 ---
 
