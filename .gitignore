@@ -20,3 +20,5 @@ coverage
 
 # Generated data (large embedding file; regenerate with npm run embed)
 opensearch/sample-documents-with-embeddings.json
+
+docs

@@ -299,8 +299,9 @@ export function buildSearchBody(
   }
 
   // ----- Advanced: hybrid (BM25 + kNN) when query vector is available -----
-  // kNN k is set to the full result size so semantic search can surface all relevant candidates —
-  // not just the top 5. BM25 + review boosts then re-rank them by relevance.
+  // BM25 is REQUIRED (must): every result must keyword-match the query across name, category, or reviews.
+  // kNN is OPTIONAL (should): boosts the score of semantically similar docs but doesn't gate results.
+  // This ensures "cafe best coffee" always runs BM25 — no result can appear without a keyword match.
   let finalQuery: Record<string, unknown> = query;
   if (plan.mode === "advanced" && queryVector && queryVector.length > 0) {
     const knnClause: Record<string, unknown> = {
@@ -311,8 +312,8 @@ export function buildSearchBody(
     };
     finalQuery = {
       bool: {
-        should: [query, { knn: knnClause }],
-        minimum_should_match: 1,
+        must: [query],
+        should: [{ knn: knnClause }],
       },
     };
   }
