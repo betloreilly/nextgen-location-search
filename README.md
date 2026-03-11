@@ -8,6 +8,105 @@ A full-stack demo that shows how **smarter search** can turn "find me a coffee s
 
 ---
 
+## Getting Started
+
+Clone the repo, then choose **one** of the two setup options below. Both options use the same ingestion and app—you only pick how you run the steps (script vs manual).
+
+### What you need before starting
+
+- A **terminal** (command line). On Windows, use **Git Bash** or **WSL** for the Quick setup script, or use **Step-by-Step Setup** in your terminal.
+- **Node.js** 18 or newer (Quick setup can check and suggest installs).
+- **OpenSearch** credentials: URL, username, and password from a managed cluster (e.g. **watsonx.data**). Local Docker OpenSearch is not supported for this demo.
+- **Optional:** An OpenAI-compatible API key for Semantic, Intermediate, or Advanced modes (Traditional mode works without it).
+
+**How to edit .env:** Open `.env` in any text editor (Notepad, TextEdit, VS Code). Set `OPENSEARCH_URL`, `OPENSEARCH_USER`, and `OPENSEARCH_PASS` to your OpenSearch endpoint and credentials. Save the file.
+
+**Tip:** Frontend config is `apps/frontend/.env.local` (dotfile; enable **Show hidden files** in your file browser to see it).
+
+---
+
+### 1. Clone or download the repository
+
+**With Git:**
+
+```bash
+git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git
+cd YOUR_REPO_NAME
+```
+
+**Without Git:** On GitHub click **Code** → **Download ZIP**, extract it, then open a terminal and `cd` into the extracted folder.
+
+---
+
+### 2. Choose one setup option
+
+Use **either** Quick setup **or** Step-by-Step Setup—not both. They are alternatives that achieve the same result: `.env` configured, dependencies installed, sample data loaded with the code in this repo (`npm run ingest`), and the app running.
+
+| | Quick setup | Step-by-Step Setup |
+|---|-------------|---------------------|
+| **Best for** | Fastest: script does env + install | You want to run each command yourself |
+| **You run** | `./setup.sh`, then edit `.env`, `npm run ingest`, `npm run dev` | All steps below by hand |
+
+#### Option A: Quick setup
+
+From the **project folder** (where you see `setup.sh` and `package.json`):
+
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+Then: edit `.env` with your OpenSearch URL and credentials → run `npm run ingest` → run `npm run dev` → open **http://localhost:3002** in your browser.
+
+*On Windows:* If you don’t have Git Bash or WSL, use **Option B: Step-by-Step Setup** instead.
+
+#### Option B: Step-by-Step Setup
+
+Do the following in order. This is the manual alternative to the Quick setup script.
+
+**Prerequisites:** Node.js 18+, OpenSearch endpoint and credentials (e.g. from watsonx.data). Optionally an OpenAI-compatible API key for Semantic/Intermediate/Advanced modes.
+
+1. **Clone and install** (if you haven’t already):
+
+   ```bash
+   git clone <your-repo-url>
+   cd nextgen-location-search
+   npm install
+   ```
+
+2. **Environment variables:** Copy the example env and edit it:
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   Edit `.env`: set **OpenSearch (required)** — `OPENSEARCH_URL`, `OPENSEARCH_USER`, `OPENSEARCH_PASS`. **Optional:** `LLM_API_KEY` or `OPENAI_API_KEY` for LLM and embeddings.
+
+3. **OpenSearch:** Use watsonx.data OpenSearch (or another OpenSearch-compatible endpoint). Put the endpoint URL and credentials in `.env`.  
+   *Alternative for local dev only:* Run OpenSearch in Docker, then set `OPENSEARCH_URL=http://localhost:9200`, `OPENSEARCH_USER=admin`, `OPENSEARCH_PASS=YourPassword123!` in `.env`.
+
+4. **Load sample data (ingest):** From the project folder:
+
+   ```bash
+   npm run ingest
+   ```
+
+   This creates the `places` index and loads sample documents from this repo. With `LLM_API_KEY` set, embeddings are generated for Semantic/Advanced. To replace an existing index: `INGEST_FORCE=1 npm run ingest`.
+
+5. **Start the app:** From the project folder:
+
+   ```bash
+   npm run dev
+   ```
+
+   Open **http://localhost:3002** in your browser (backend at http://localhost:3001).
+
+6. **Try the four modes** in the UI: Traditional, Semantic, Intermediate, Advanced. In **Traditional** use the filters and keyword box; in **Semantic** and **Intermediate** type a sentence and click Search; in **Advanced** use the chat and follow-ups like *"Which one has more students?"*
+
+For architecture and how the app works, see [docs/architecture.md](docs/architecture.md).
+
+---
+
 ## What This Project Does
 
 This is a **place-finder app** (coffee shops, cafes, and the like) with one important twist: you can talk to it in plain language and refine your search over several messages.
@@ -62,80 +161,6 @@ Imagine a **campus or neighborhood app** that helps students and staff find plac
 **After:** They say *"Somewhere cheap and quiet to work, with good reviews."* The app returns a few relevant spots. They ask *"Which one has more students?"* and the list updates to highlight the place that's known for that (e.g. Campus Brew) instead of staying stuck on the first query.
 
 The business wins because users get to the right place faster, use the app more, and the data (reviews, categories) is actually used to rank. This repo is a working blueprint for that kind of experience.
-
----
-
-## Step-by-Step Setup
-
-You need **Node.js** 18+ and **watsonx.data OpenSearch** (or another OpenSearch-compatible endpoint). Follow these steps in order.
-
-### 1. Prerequisites
-
-**Node.js** 18 or newer. **watsonx.data OpenSearch**: provision an OpenSearch instance in watsonx.data and note the endpoint URL and credentials. Optionally, an **OpenAI-compatible API key** for Semantic, Intermediate, and Advanced modes and for embeddings.
-
-### 2. Clone and install
-
-```bash
-git clone <your-repo-url>
-cd nextgen-location-search
-npm install
-```
-
-### 3. Environment variables
-
-Copy the example env file and edit it:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` and set:
-
-**OpenSearch (required):** `OPENSEARCH_URL` (your watsonx.data OpenSearch endpoint), `OPENSEARCH_USER` and `OPENSEARCH_PASS`. Use the URL and credentials from your watsonx.data OpenSearch instance.
-
-**Optional (for Semantic, Intermediate, and Advanced):** `LLM_API_KEY` or `OPENAI_API_KEY` for the LLM and for generating embeddings. Without a key, you can still run **Traditional** mode and optionally index sample data without embeddings.
-
-### 4. watsonx.data OpenSearch
-
-Use **watsonx.data OpenSearch** as your search backend. In watsonx.data, provision or use an existing OpenSearch instance, then copy the **endpoint URL** and **credentials** into `.env` as `OPENSEARCH_URL`, `OPENSEARCH_USER`, and `OPENSEARCH_PASS`. The app talks to OpenSearch over the REST API, so as long as the endpoint is reachable from where the app runs, you’re set.
-
-**Alternative: run OpenSearch locally with Docker** (for quick dev only):
-
-```bash
-docker run -d -p 9200:9200 -p 9600:9600 -e "discovery.type=single-node" -e "OPENSEARCH_INITIAL_ADMIN_PASSWORD=YourPassword123!" opensearchproject/opensearch:2.11.0
-```
-
-Then set `OPENSEARCH_URL=http://localhost:9200` and `OPENSEARCH_USER=admin`, `OPENSEARCH_PASS=YourPassword123!` in `.env`.
-
-### 5. Load sample data (ingest)
-
-From the project root:
-
-```bash
-npm run ingest
-```
-
-This creates the `places` index and loads sample coffee-shop–style documents. If `LLM_API_KEY` or `OPENAI_API_KEY` is set, it will also generate embeddings so Semantic and Advanced modes work. To replace an existing index:
-
-```bash
-INGEST_FORCE=1 npm run ingest
-```
-
-### 6. Start the app
-
-From the project root:
-
-```bash
-npm run dev
-```
-
-Then open **http://localhost:3002** in your browser. The backend runs at http://localhost:3001.
-
-### 7. Try the four modes
-
-Switch the mode (Traditional / Semantic / Intermediate / Advanced) in the UI. In **Traditional**, use the filters and keyword box. In **Semantic** and **Intermediate**, type a full sentence and click Search. In **Advanced**, use the chat; you can refine with follow-ups like *"Which one has more students?"*
-
-For a 5-minute script and suggested queries, see [docs/5-minute-demo.md](docs/5-minute-demo.md) and [docs/demo-queries.md](docs/demo-queries.md).
 
 ---
 
