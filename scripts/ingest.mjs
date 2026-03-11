@@ -114,9 +114,9 @@ async function main() {
     console.log("No LLM_API_KEY/OPENAI_API_KEY — ingesting without embeddings (keyword-only).");
   }
 
-  const url = process.env.OPENSEARCH_URL || "http://localhost:9200";
-  const user = process.env.OPENSEARCH_USER;
-  const pass = process.env.OPENSEARCH_PASS;
+  const url = (process.env.OPENSEARCH_URL || "http://localhost:9200").replace(/\/$/, "");
+  const user = process.env.OPENSEARCH_USER || process.env.OPENSEARCH_USERNAME;
+  const pass = process.env.OPENSEARCH_PASS || process.env.OPENSEARCH_PASSWORD;
   const client = new Client({
     node: url,
     ...(user && pass ? { auth: { username: user, password: pass } } : {}),
@@ -148,7 +148,34 @@ async function main() {
   console.log("Ingestion complete.");
 }
 
-main().catch((e) => {
+async function log400Body(url, user, pass, index, mapping) {
+  const createUrl = url.replace(/\/$/, "") + "/" + index;
+  const opts = {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(mapping),
+  };
+  if (user && pass) {
+    opts.headers.Authorization = "Basic " + Buffer.from(`${user}:${pass}`).toString("base64");
+  }
+  const res = await fetch(createUrl, opts);
+  const text = await res.text();
+  console.error("Raw server response (" + res.status + "):", text || "(empty)");
+}
+
+main().catch(async (e) => {
+  if (e.meta?.body !== undefined) console.error("Server response body:", e.meta.body);
+  if (e.meta?.statusCode) console.error("HTTP status:", e.meta.statusCode);
+  if (e.meta?.statusCode === 400) {
+    const url = (process.env.OPENSEARCH_URL || "http://localhost:9200").replace(/\/$/, "");
+    const mapping = JSON.parse(
+      readFileSync(join(root, "opensearch", "places-mapping.json"), "utf8")
+    );
+    console.error("Repeating create-index request to capture server message:");
+    const u = process.env.OPENSEARCH_USER || process.env.OPENSEARCH_USERNAME;
+    const p = process.env.OPENSEARCH_PASS || process.env.OPENSEARCH_PASSWORD;
+    await log400Body(url, u, p, "places", mapping);
+  }
   console.error(e);
   process.exit(1);
 });

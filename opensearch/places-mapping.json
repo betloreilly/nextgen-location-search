@@ -1,7 +1,5 @@
 {
   "settings": {
-    "number_of_shards": 1,
-    "number_of_replicas": 0,
     "index.knn": true
   },
   "mappings": {
@@ -16,16 +14,7 @@
       "embedding": {
         "type": "knn_vector",
         "dimension": 1536,
-        "space_type": "l2",
-        "method": {
-          "name": "hnsw",
-          "engine": "lucene",
-          "space_type": "l2",
-          "parameters": {
-            "ef_construction": 128,
-            "m": 24
-          }
-        }
+        "mode": "in_memory"
       },
       "reviews": {
         "type": "nested",
@@ -34,16 +23,7 @@
           "embedding": {
             "type": "knn_vector",
             "dimension": 1536,
-            "space_type": "l2",
-            "method": {
-              "name": "hnsw",
-              "engine": "lucene",
-              "space_type": "l2",
-              "parameters": {
-                "ef_construction": 128,
-                "m": 24
-              }
-            }
+            "mode": "in_memory"
           }
         }
       }

@@ -52,38 +52,6 @@ if ! check_node; then
 fi
 echo ""
 
-# --- Choose path ---
-echo "Choose one (they are alternatives):"
-echo "  1) Quick setup — script sets up .env and deps; you then edit .env, run npm run ingest, npm run dev."
-echo "  2) Step-by-step — show manual instructions only (same result, you run each step yourself)."
-echo ""
-read -r -p "Enter 1 or 2 [1]: " choice
-choice="${choice:-1}"
-
-if [ "$choice" = "2" ]; then
-  echo ""
-  echo "=============================================="
-  echo "  Step-by-step setup (manual)"
-  echo "=============================================="
-  echo ""
-  echo "1. Copy env and edit:"
-  echo "   cp .env.example .env"
-  echo "   # Edit .env: set OPENSEARCH_URL, OPENSEARCH_USER, OPENSEARCH_PASS (and LLM keys if needed)."
-  echo ""
-  echo "2. Install dependencies:"
-  echo "   npm install"
-  echo ""
-  echo "3. Edit .env with your OpenSearch URL, user, and password (optional: LLM_API_KEY)."
-  echo "4. Load sample data: npm run ingest  (or INGEST_FORCE=1 npm run ingest to replace index)"
-  echo "5. Start the app: npm run dev — then open http://localhost:3002 in your browser."
-  echo ""
-  echo "Frontend config: apps/frontend/.env.local (show hidden files to see it)."
-  echo ""
-  exit 0
-fi
-
-# --- Quick setup ---
-echo ""
 echo "=============================================="
 echo "  Quick setup"
 echo "=============================================="
@@ -95,7 +63,12 @@ if [ ! -f .env ]; then
 else
   echo "  ✓ .env already exists (unchanged)"
 fi
-echo "  → Edit .env in a text editor: set OPENSEARCH_URL, OPENSEARCH_USER, OPENSEARCH_PASS (and optional LLM_API_KEY for Semantic/Advanced)."
+echo ""
+echo "  → Edit .env with your OpenSearch and optional LLM settings:"
+echo "     • OPENSEARCH_URL   — OpenSearch endpoint (no trailing slash)."
+echo "     • OPENSEARCH_USER  — Username (e.g. ibmlhapikey_you@example.com for watsonx.data)."
+echo "     • OPENSEARCH_PASS  — Password or API key."
+echo "     • LLM_API_KEY      — Optional; needed for Semantic search and embeddings during ingest."
 echo ""
 
 echo "Installing dependencies..."
@@ -104,12 +77,16 @@ echo "  ✓ npm install done"
 echo ""
 
 echo "Next steps (do in order):"
-echo "  1. Edit .env with your OpenSearch URL, username, and password (and optional LLM_API_KEY)."
-echo "  2. Load sample data:  npm run ingest"
-echo "     (To replace existing data: INGEST_FORCE=1 npm run ingest)"
-echo "  3. Start the app:      npm run dev"
-echo "  4. Open in browser:    http://localhost:3002  (backend: http://localhost:3001)"
+echo "  1. Edit .env: set OPENSEARCH_URL (no trailing slash), OPENSEARCH_USER, OPENSEARCH_PASS."
+echo "  2. Load sample data:   npm run ingest"
+echo "     (To replace existing index: INGEST_FORCE=1 npm run ingest)"
+echo "  3. Build packages:     npm run build:packages   (required before first dev run)"
+echo "  4. Start the app:      npm run dev"
+echo "  5. Open in browser:    http://localhost:3002   (backend: http://localhost:3001)"
 echo ""
-echo "Frontend config: apps/frontend/.env.local (enable Show hidden files to see it)."
+echo "  Frontend config: apps/frontend/.env.local (enable Show hidden files to see it)."
+echo ""
+echo "  Using IBM watsonx.data or managed OpenSearch? Use OPENSEARCH_USER and OPENSEARCH_PASS"
+echo "  (the app expects these names). Ensure the URL has no trailing slash."
 echo ""
 echo "Quick setup finished. Complete the steps above to run the demo."

@@ -6,7 +6,8 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build -w @nextgen-location-search/types && npm run build --workspaces --if-present",
+    "build": "npm run build:packages && npm run build -w @nextgen-location-search/backend && npm run build -w @nextgen-location-search/frontend",
+    "build:packages": "npm run build -w @nextgen-location-search/types && npm run build -w @nextgen-location-search/memory && npm run build -w @nextgen-location-search/llm && npm run build -w @nextgen-location-search/planner && npm run build -w @nextgen-location-search/search && npm run build -w @nextgen-location-search/explain",
     "dev": "npm run dev --workspace=apps/backend & npm run dev --workspace=apps/frontend",
     "dev:backend": "npm run dev --workspace=apps/backend",
     "dev:frontend": "npm run dev --workspace=apps/frontend",
@@ -20,7 +21,7 @@
   "devDependencies": {
     "@opensearch-project/opensearch": "^2.8.0",
     "typescript": "^5.3.3",
-    "vitest": "^2.1.0"
+    "vitest": "^4.0.18"
   },
   "engines": {
     "node": ">=18"
